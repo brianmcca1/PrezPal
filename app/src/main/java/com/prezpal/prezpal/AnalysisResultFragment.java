@@ -1,12 +1,16 @@
 package com.prezpal.prezpal;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 
@@ -62,8 +66,32 @@ public class AnalysisResultFragment extends Fragment {
         }
         TextView nameView = (TextView) getView().findViewById(R.id.itemName);
         TextView severityView = (TextView) getView().findViewById(R.id.itemSeverity);
+        Button detailsButton = (Button) getView().findViewById(R.id.analysisDetails);
         nameView.setText(name);
         severityView.setText(severity.toString());
+        // When the user clicks on the Details button, show a pop-up displaying the details
+        detailsButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v){
+                AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(getContext());
+
+                final EditText et = new EditText(getContext());
+                et.setText(details);
+
+                // set prompts.xml to alertdialog builder
+                alertDialogBuilder.setView(et);
+
+                // set dialog message
+                alertDialogBuilder.setCancelable(false).setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                    }
+                });
+
+                // create alert dialog
+                AlertDialog alertDialog = alertDialogBuilder.create();
+                // show it
+                alertDialog.show();
+            }
+        });
     }
 
     @Override
