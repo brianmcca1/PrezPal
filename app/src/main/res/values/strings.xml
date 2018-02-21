@@ -4,4 +4,7 @@
     <!-- TODO: Remove or change this placeholder text -->
 
     <string name="analysisDetails">Details</string>
+    <string name="present_settings_name">Presentation Settings</string>
+    <string name="interview_settings_name">Interview Settings</string>
+    <string name="help_instructions_name">How to Use the App</string>
 </resources>

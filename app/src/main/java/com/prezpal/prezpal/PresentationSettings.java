@@ -10,4 +10,6 @@ public class PresentationSettings extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_presentation_settings);
     }
+
+    //TODO:Functionality for the Timer Button goes here
 }
