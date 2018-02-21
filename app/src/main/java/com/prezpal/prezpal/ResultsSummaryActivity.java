@@ -2,6 +2,8 @@ package com.prezpal.prezpal;
 
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
+import android.content.Intent;
+import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
@@ -15,11 +17,13 @@ public class ResultsSummaryActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Intent i = getIntent();
+        Uri videoUri = i.getData();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_results_summary);
         // Perform Analysis here
-        List<AnalysisItem> analysisItems = AudioAnalysis.audioAnalysis();
-        analysisItems.addAll(VideoAnalysis.videoAnalysis());
+        List<AnalysisItem> analysisItems = AudioAnalysis.audioAnalysis(videoUri);
+        analysisItems.addAll(VideoAnalysis.videoAnalysis(videoUri));
         // Create fragments
         FragmentManager manager = getFragmentManager();
         for(AnalysisItem item : analysisItems){

@@ -1,5 +1,7 @@
 package com.prezpal.prezpal;
 
+import android.net.Uri;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,7 +12,7 @@ import java.util.List;
 
 public class AudioAnalysis {
     // TODO: Adjust arguments of analysis as necessary
-    public static List<AnalysisItem> audioAnalysis(){
+    public static List<AnalysisItem> audioAnalysis(Uri videoUri){
 
         List<AnalysisItem> items = new ArrayList<AnalysisItem>();
         return items;
