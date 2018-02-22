@@ -1,6 +1,8 @@
 package com.prezpal.prezpal;
 
+import android.content.Intent;
 import android.media.MediaRecorder;
+import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -47,8 +49,19 @@ public class AudioRecordingActivity extends AppCompatActivity {
                 stopRecording();
                 // Analyze the Max Amplitudes
                 analysisItems.add(AudioAnalysis.analyzeAmplitudes(maxAmplitudes));
+
                 // TODO: This is where the rest of the analysis should go
+
                 // Launch intent for the ResultsSummaryActivity
+                Intent resultsIntent = new Intent(getApplicationContext(), ResultsSummaryActivity.class);
+                ArrayList<Parcelable> parcelableList = new ArrayList<Parcelable>();
+                for(AnalysisItem item : analysisItems){
+                    parcelableList.add((Parcelable) item);
+                }
+
+                resultsIntent.putParcelableArrayListExtra("ANALYSIS_ITEMS", parcelableList);
+                startActivity(resultsIntent);
+
             }
         });
 
