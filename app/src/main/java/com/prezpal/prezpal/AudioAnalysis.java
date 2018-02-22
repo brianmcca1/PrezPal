@@ -17,4 +17,9 @@ public class AudioAnalysis {
         List<AnalysisItem> items = new ArrayList<AnalysisItem>();
         return items;
     }
+
+    public static AnalysisItem analyzeAmplitudes(List<Integer> maxAmplitudes) {
+        // TODO: Perform analysis
+        return null;
+    }
 }

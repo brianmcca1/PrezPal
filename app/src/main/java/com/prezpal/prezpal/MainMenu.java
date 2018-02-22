@@ -17,10 +17,14 @@ public class MainMenu extends AppCompatActivity {
     }
 
     public void launchPresentationMode(View view) {
+        /**
         Intent takeVideoIntent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
         if(takeVideoIntent.resolveActivity(getPackageManager()) != null){
             startActivityForResult(takeVideoIntent, REQUEST_VIDEO_CAPTURE);
         }
+         */
+        Intent audioRecordingIntent = new Intent(this, AudioRecordingActivity.class);
+        startActivity(audioRecordingIntent);
     }
 
     @Override

@@ -4,4 +4,6 @@
     <!-- TODO: Remove or change this placeholder text -->
 
     <string name="analysisDetails">Details</string>
+    <string name="startRecording">Start Recording</string>
+    <string name="stopRecording">Stop Recording</string>
 </resources>
