@@ -1,8 +1,11 @@
 package com.prezpal.prezpal;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.media.MediaRecorder;
 import android.os.Parcelable;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -68,6 +71,23 @@ public class AudioRecordingActivity extends AppCompatActivity {
     }
 
     private void startRecording() throws IOException{
+        // Check for permissions
+        int permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+        // If we don't have permissions, ask user for permissions
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            String[] PERMISSIONS_STORAGE = {
+                    android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+            };
+            int REQUEST_EXTERNAL_STORAGE = 1;
+
+            ActivityCompat.requestPermissions(
+                    this,
+                    PERMISSIONS_STORAGE,
+                    REQUEST_EXTERNAL_STORAGE
+            );
+        }
         if(mRecorder == null){
             mRecorder = new MediaRecorder();
             mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
