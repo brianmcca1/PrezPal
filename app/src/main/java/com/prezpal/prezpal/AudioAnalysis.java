@@ -18,8 +18,74 @@ public class AudioAnalysis {
         return items;
     }
 
+    /**
+     * Based on a list of recorded amplitudes, determine the average pause length and the number of
+     * pauses the user had
+     * @param maxAmplitudes The list of recorded amplitudes
+     * @return The resulting AnalysisItem
+     */
     public static AnalysisItem analyzeAmplitudes(List<Integer> maxAmplitudes) {
-        // TODO: Perform analysis
-        return null;
+        int max = 0; // The max amplitude value recorded (used as a baseline for speaking volume)
+        int min = Integer.MAX_VALUE; // The minimum amplitude value recorded (used as a baseline for silence)
+        int previousValue = 0; // What the previously recorded amplitude was
+        boolean talking = false; // Whether the user is currently talking
+        int consecutiveCount = 0; // How many iterations the user has been talking/not talking consecutively.
+        // Representing a list of pauses, where the integer represents the length of the pause
+        List<Integer> pauses = new ArrayList<Integer>();
+        for(Integer amplitude : maxAmplitudes){
+           if(amplitude > max) {
+               // Update the max amplitude
+               max = amplitude;
+           }
+           if(amplitude < min) {
+               // Update the minimum amplitude
+               min = amplitude;
+           }
+           if(talking){
+               if(amplitude < (0.25 * (max - min) + min)){
+                   // The user is silent now
+                   consecutiveCount = 0;
+                   talking = false;
+               } else {
+                   // The user is probably still talking
+                   consecutiveCount++;
+
+               }
+           } else {
+               if(amplitude > (0.75 * (max - min) + min)){
+                   // The user is talking now
+                   if(consecutiveCount > 10){
+                       // The silence lasted more than half a second, so record it
+                       pauses.add(consecutiveCount);
+                   }
+                   consecutiveCount = 0;
+                   talking = true;
+               } else {
+                   // The user is probably still silent
+                   consecutiveCount++;
+               }
+           }
+        }
+
+        int totalPauseLength = 0;
+        for(Integer pauseLength : pauses){
+            totalPauseLength += pauseLength;
+        }
+
+        long averagePauseLength = totalPauseLength / pauses.size();
+
+        AnalysisSeverity severity;
+        if(averagePauseLength < 30){
+            // Less than 1.5 seconds
+            severity = AnalysisSeverity.OKAY;
+        } else if(averagePauseLength < 60){
+            // Less than 3 seconds
+            severity = AnalysisSeverity.MEDIUM;
+        } else {
+            // Greater than 3 seconds
+            severity = AnalysisSeverity.SEVERE;
+        }
+        // Potential other Item: number of pauses?
+        return new AnalysisItem(severity, "Average Pause Length", "Your average pause length was " + Math.round(averagePauseLength * 20) + " seconds");
     }
 }
