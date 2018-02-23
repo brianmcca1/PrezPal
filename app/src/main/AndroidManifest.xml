@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.prezpal.prezpal">
 
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -17,13 +19,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
             android:name=".PresentationSettings"
             android:label="@string/present_settings_name"
             android:parentActivityName=".MainMenu">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.example.david.prezpal.MainMenu" />
+                android:value="com.prezpal.prezpal.MainMenu" />
         </activity>
         <activity
             android:name=".InterviewSettings"
@@ -31,7 +34,7 @@
             android:parentActivityName=".MainMenu">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.example.david.prezpal.MainMenu" />
+                android:value="com.prezpal.prezpal.MainMenu" />
         </activity>
         <activity
             android:name=".HelpInstructions"
@@ -39,9 +42,11 @@
             android:parentActivityName=".MainMenu">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="com.example.david.prezpal.MainMenu" />
+                android:value="com.prezpal.prezpal.MainMenu" />
 
         </activity>
+
+
     </application>
 
 </manifest>
