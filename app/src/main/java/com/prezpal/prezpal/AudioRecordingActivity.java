@@ -26,6 +26,8 @@ public class AudioRecordingActivity extends AppCompatActivity {
     private List<Integer> maxAmplitudes = new ArrayList<Integer>();
     // The list of all analyzed analysis items
     private List<AnalysisItem> analysisItems = new ArrayList<AnalysisItem>();
+    // Time markers to determine duration of recording
+    private long startTime, endTime;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -33,10 +35,14 @@ public class AudioRecordingActivity extends AppCompatActivity {
         final Button startRecordingButton = (Button) findViewById(R.id.startRecordingButton);
         final Button stopRecordingButton = (Button) findViewById(R.id.stopRecordingButton);
 
+        Intent intent = getIntent();
+        final Integer expectedDuration = intent.getIntExtra("DURATION", 5);
+
         stopRecordingButton.setVisibility(View.INVISIBLE);
 
         startRecordingButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v){
+
                 startRecordingButton.setVisibility(View.INVISIBLE);
                 stopRecordingButton.setVisibility(View.VISIBLE);
                 try {
@@ -54,7 +60,8 @@ public class AudioRecordingActivity extends AppCompatActivity {
                 analysisItems.add(AudioAnalysis.analyzeAmplitudes(maxAmplitudes));
 
                 // TODO: This is where the rest of the analysis should go
-
+                Long actualDuration = (endTime - startTime) * 1000000; // Calculate the duration in seconds
+                analysisItems.add(AudioAnalysis.analyzeDuration(expectedDuration * 60, actualDuration));
                 // Launch intent for the ResultsSummaryActivity
                 Intent resultsIntent = new Intent(getApplicationContext(), ResultsSummaryActivity.class);
                 ArrayList<Parcelable> parcelableList = new ArrayList<Parcelable>();
@@ -72,6 +79,7 @@ public class AudioRecordingActivity extends AppCompatActivity {
 
     private void startRecording() throws IOException{
         // Check for permissions
+
         int permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
 
         // If we don't have permissions, ask user for permissions
@@ -88,6 +96,7 @@ public class AudioRecordingActivity extends AppCompatActivity {
                     REQUEST_EXTERNAL_STORAGE
             );
         }
+        startTime = System.nanoTime();
         if(mRecorder == null){
             mRecorder = new MediaRecorder();
             mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
@@ -109,6 +118,7 @@ public class AudioRecordingActivity extends AppCompatActivity {
     }
 
     private void stopRecording() {
+        endTime = System.nanoTime();
         if(mRecorder != null){
             mRecorder.stop();
             mRecorder.release();

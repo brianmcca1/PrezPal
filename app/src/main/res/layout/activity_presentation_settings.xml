@@ -17,18 +17,34 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <TextView
-            android:id="@+id/textView"
-            android:layout_width="280dp"
+        <LinearLayout
             android:layout_height="wrap_content"
-            android:text="Timer"
-            android:textSize="28sp" />
+            android:layout_width="match_parent"
+            android:orientation="vertical">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/duration"
+                />
+                <EditText
+                    android:layout_height="wrap_content"
+                    android:layout_width="200dp"
+                    android:id="@+id/duration"
+                    android:inputType="number"/>
+            </LinearLayout>
+            <Button
+                android:id="@+id/backButton"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:text="@string/ok"/>
 
-        <CheckBox
-            android:id="@+id/checkBox"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_column="1"
-            android:layout_row="0" />
+        </LinearLayout>
+
+
+
     </GridLayout>
 </android.support.constraint.ConstraintLayout>

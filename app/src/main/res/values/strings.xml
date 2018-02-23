@@ -10,4 +10,6 @@
     <string name="help_instructions_name">How to Use the App</string>
     <string name="startRecording">Start Recording</string>
     <string name="stopRecording">Stop Recording</string>
+    <string name="duration">Duration (minutes): </string>
+    <string name="ok">OK</string>
 </resources>

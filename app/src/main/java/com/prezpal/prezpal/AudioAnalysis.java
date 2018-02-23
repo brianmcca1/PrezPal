@@ -88,4 +88,19 @@ public class AudioAnalysis {
         // Potential other Item: number of pauses?
         return new AnalysisItem(severity, "Average Pause Length", "Your average pause length was " + Math.round(averagePauseLength * 20) + " seconds");
     }
+
+    public static AnalysisItem analyzeDuration(Integer expectedDuration, long actualDuration){
+
+        if(actualDuration < expectedDuration){
+            int difference = Math.round(expectedDuration - actualDuration);
+            return new AnalysisItem(AnalysisSeverity.OKAY, "Duration", "You finished with " + difference + " seconds to spare");
+        } else {
+            int difference = Math.round(actualDuration - expectedDuration);
+            if(difference < 60){
+                return new AnalysisItem(AnalysisSeverity.MEDIUM, "Duration", "You went " + difference + " too long");
+            } else {
+                return new AnalysisItem(AnalysisSeverity.SEVERE, "Duration", "You went " + difference + " too long!");
+            }
+        }
+    }
 }

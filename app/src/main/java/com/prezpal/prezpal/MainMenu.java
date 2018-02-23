@@ -10,10 +10,15 @@ import android.view.View;
 public class MainMenu extends AppCompatActivity {
 
     static final int REQUEST_VIDEO_CAPTURE = 1;
+    private Integer presentationDuration;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_menu);
+        Intent intent = getIntent();
+        if(intent != null){
+            presentationDuration = intent.getIntExtra("DURATION", 5);
+        }
     }
 
     //The function called when the presentation button is pressed
@@ -25,6 +30,7 @@ public class MainMenu extends AppCompatActivity {
         }
          */
         Intent audioRecordingIntent = new Intent(this, AudioRecordingActivity.class);
+        audioRecordingIntent.putExtra("DURATION", presentationDuration);
         startActivity(audioRecordingIntent);
     }
 
