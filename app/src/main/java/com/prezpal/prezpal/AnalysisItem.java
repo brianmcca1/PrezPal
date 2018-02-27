@@ -76,4 +76,8 @@ public class AnalysisItem implements Parcelable{
     }
 
 
+    @Override
+    public String toString() {
+        return name + ": " + severity + "\n" + details;
+    }
 }
