@@ -17,7 +17,7 @@ import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegNotSupportedExceptio
 import java.util.ArrayList;
 import java.util.List;
 
-public class ResultsSummaryActivity extends AppCompatActivity {
+public class ResultsSummaryActivity extends AppCompatActivity implements AnalysisResultFragment.OnFragmentInteractionListener{
 
     private static final String ARG_SEVERITY = "SEVERITY";
     private static final String ARG_NAME = "NAME";
@@ -74,5 +74,10 @@ public class ResultsSummaryActivity extends AppCompatActivity {
             transaction.commit();
 
         }
+    }
+
+    @Override
+    public void onFragmentInteraction(Uri uri){
+
     }
 }

@@ -72,7 +72,12 @@ public class AudioAnalysis {
             totalPauseLength += pauseLength;
         }
 
-        long averagePauseLength = totalPauseLength / pauses.size();
+        long averagePauseLength;
+        if(pauses.size() != 0) {
+            averagePauseLength = totalPauseLength / pauses.size();
+        } else {
+            averagePauseLength = 0;
+        }
 
         AnalysisSeverity severity;
         if(averagePauseLength < 30){

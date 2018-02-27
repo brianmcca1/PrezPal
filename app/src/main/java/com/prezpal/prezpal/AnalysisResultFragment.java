@@ -59,14 +59,23 @@ public class AnalysisResultFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        View rootView = inflater.inflate(R.layout.fragment_analysis_result, container, false);
         if (getArguments() != null) {
             name = getArguments().getString(ARG_NAME);
             details = getArguments().getString(ARG_DETAILS);
             severity = AnalysisSeverity.valueOf(getArguments().getString(ARG_SEVERITY));
         }
-        TextView nameView = (TextView) getView().findViewById(R.id.itemName);
-        TextView severityView = (TextView) getView().findViewById(R.id.itemSeverity);
-        Button detailsButton = (Button) getView().findViewById(R.id.analysisDetails);
+        TextView nameView = (TextView) rootView.findViewById(R.id.itemName);
+        TextView severityView = (TextView) rootView.findViewById(R.id.itemSeverity);
+        Button detailsButton = (Button) rootView.findViewById(R.id.analysisDetails);
         nameView.setText(name);
         severityView.setText(severity.toString());
         // When the user clicks on the Details button, show a pop-up displaying the details
@@ -92,13 +101,7 @@ public class AnalysisResultFragment extends Fragment {
                 alertDialog.show();
             }
         });
-    }
-
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_analysis_result, container, false);
+        return rootView;
     }
 
 

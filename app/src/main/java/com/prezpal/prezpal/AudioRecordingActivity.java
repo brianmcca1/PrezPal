@@ -3,11 +3,13 @@ package com.prezpal.prezpal;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Parcelable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
@@ -80,10 +82,10 @@ public class AudioRecordingActivity extends AppCompatActivity {
     private void startRecording() throws IOException{
         // Check for permissions
 
-        int permission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        int writePermission = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
 
         // If we don't have permissions, ask user for permissions
-        if (permission != PackageManager.PERMISSION_GRANTED) {
+        if (writePermission != PackageManager.PERMISSION_GRANTED) {
             String[] PERMISSIONS_STORAGE = {
                     android.Manifest.permission.READ_EXTERNAL_STORAGE,
                     android.Manifest.permission.WRITE_EXTERNAL_STORAGE
@@ -99,12 +101,21 @@ public class AudioRecordingActivity extends AppCompatActivity {
         startTime = System.nanoTime();
         if(mRecorder == null){
             mRecorder = new MediaRecorder();
+            mRecorder.reset();
             mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
             mRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
             mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-            mRecorder.setOutputFile("/res/videos");
+            mRecorder.setOutputFile(getExternalCacheDir().getAbsolutePath() + "/testVideo");
+            mRecorder.setOnErrorListener(new MediaRecorder.OnErrorListener() {
+                @Override
+                public void onError(MediaRecorder recorder, int what, int extra){
+                    Log.d("MainActivity", "WHAT: " + what + " EXTRA: " + extra);
+
+                }
+            });
             mRecorder.prepare();
             mRecorder.start();
+
 
             Runnable checkAmplitude = new Runnable (){
                 public void run() {
