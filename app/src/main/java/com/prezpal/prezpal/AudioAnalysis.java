@@ -27,7 +27,6 @@ public class AudioAnalysis {
     public static AnalysisItem analyzeAmplitudes(List<Integer> maxAmplitudes) {
         int max = 0; // The max amplitude value recorded (used as a baseline for speaking volume)
         int min = Integer.MAX_VALUE; // The minimum amplitude value recorded (used as a baseline for silence)
-        int previousValue = 0; // What the previously recorded amplitude was
         boolean talking = false; // Whether the user is currently talking
         int consecutiveCount = 0; // How many iterations the user has been talking/not talking consecutively.
         // Representing a list of pauses, where the integer represents the length of the pause
@@ -91,7 +90,7 @@ public class AudioAnalysis {
             severity = AnalysisSeverity.SEVERE;
         }
         // Potential other Item: number of pauses?
-        return new AnalysisItem(severity, "Average Pause Length", "Your average pause length was " + Math.round(averagePauseLength * 20) + " seconds");
+        return new AnalysisItem(severity, "Average Pause Length", "Your average pause length was " + averagePauseLength * 20 + " seconds");
     }
 
     public static AnalysisItem analyzeDuration(Integer expectedDuration, long actualDuration){

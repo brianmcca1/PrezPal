@@ -62,7 +62,7 @@ public class AudioRecordingActivity extends AppCompatActivity {
                 analysisItems.add(AudioAnalysis.analyzeAmplitudes(maxAmplitudes));
 
                 // TODO: This is where the rest of the analysis should go
-                Long actualDuration = (endTime - startTime) * 1000000; // Calculate the duration in seconds
+                Long actualDuration = (endTime - startTime) / 1000000000; // Calculate the duration in seconds
                 analysisItems.add(AudioAnalysis.analyzeDuration(expectedDuration * 60, actualDuration));
                 // Launch intent for the ResultsSummaryActivity
                 Intent resultsIntent = new Intent(getApplicationContext(), ResultsSummaryActivity.class);
