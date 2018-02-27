@@ -30,7 +30,7 @@ public class AudioAnalysis {
         boolean talking = false; // Whether the user is currently talking
         int consecutiveCount = 0; // How many iterations the user has been talking/not talking consecutively.
         // Representing a list of pauses, where the integer represents the length of the pause
-        List<Integer> pauses = new ArrayList<Integer>();
+        List<Long> pauses = new ArrayList<Long>();
         for(Integer amplitude : maxAmplitudes){
            if(amplitude > max) {
                // Update the max amplitude
@@ -55,7 +55,7 @@ public class AudioAnalysis {
                    // The user is talking now
                    if(consecutiveCount > 10){
                        // The silence lasted more than half a second, so record it
-                       pauses.add(consecutiveCount);
+                       pauses.add(Long.valueOf(consecutiveCount) / 20);
                    }
                    consecutiveCount = 0;
                    talking = true;
@@ -67,7 +67,7 @@ public class AudioAnalysis {
         }
 
         int totalPauseLength = 0;
-        for(Integer pauseLength : pauses){
+        for(Long pauseLength : pauses){
             totalPauseLength += pauseLength;
         }
 
@@ -79,10 +79,10 @@ public class AudioAnalysis {
         }
 
         AnalysisSeverity severity;
-        if(averagePauseLength < 30){
+        if(averagePauseLength < 1.5){
             // Less than 1.5 seconds
             severity = AnalysisSeverity.OKAY;
-        } else if(averagePauseLength < 60){
+        } else if(averagePauseLength < 3){
             // Less than 3 seconds
             severity = AnalysisSeverity.MEDIUM;
         } else {
@@ -90,7 +90,7 @@ public class AudioAnalysis {
             severity = AnalysisSeverity.SEVERE;
         }
         // Potential other Item: number of pauses?
-        return new AnalysisItem(severity, "Average Pause Length", "Your average pause length was " + averagePauseLength * 20 + " seconds");
+        return new AnalysisItem(severity, "Average Pause Length", "Your average pause length was " + averagePauseLength + " seconds");
     }
 
     public static AnalysisItem analyzeDuration(Integer expectedDuration, long actualDuration){
