@@ -105,7 +105,7 @@ public class AudioRecordingActivity extends AppCompatActivity {
             mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
             mRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
             mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-            mRecorder.setOutputFile(getExternalCacheDir().getAbsolutePath() + "/testVideo");
+            mRecorder.setOutputFile(getExternalCacheDir().getAbsolutePath() + "/testAudio");
             mRecorder.setOnErrorListener(new MediaRecorder.OnErrorListener() {
                 @Override
                 public void onError(MediaRecorder recorder, int what, int extra){

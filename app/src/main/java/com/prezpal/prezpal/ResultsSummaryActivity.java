@@ -7,7 +7,9 @@ import android.net.Uri;
 import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 
@@ -31,10 +33,13 @@ public class ResultsSummaryActivity extends AppCompatActivity implements Analysi
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_results_summary);
 
-
-
-
-
+        Button backButton = findViewById(R.id.home);
+        backButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v){
+                Intent i = new Intent(getBaseContext(), MainMenu.class);
+                startActivity(i);
+            }
+        });
         List<AnalysisItem> analysisItems = new ArrayList<AnalysisItem>();
 
         Intent i = getIntent();

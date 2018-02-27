@@ -12,4 +12,5 @@
     <string name="stopRecording">Stop Recording</string>
     <string name="duration">Duration (minutes): </string>
     <string name="ok">OK</string>
+    <string name="back">Back</string>
 </resources>
