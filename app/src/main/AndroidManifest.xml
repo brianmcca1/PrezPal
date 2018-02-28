@@ -52,10 +52,6 @@
                 android:value="com.prezpal.prezpal.MainMenu" />
         </activity>
 
-        <service
-            android:name=".SpeechRecognitionService"
-            android:enabled="true"
-            android:exported="true"></service>
     </application>
 
 </manifest>

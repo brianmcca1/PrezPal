@@ -110,15 +110,15 @@ public class AudioAnalysis {
         }
     }
 
-    public static AnalysisItem analyzeRecognition(SpeechRecognitionAlternative alternative){
+    public static AnalysisItem analyzeRecognition(Float confidence){
         AnalysisSeverity severity;
-        if(alternative.getConfidence() > 0.9){
+        if(confidence > 0.9){
             severity = AnalysisSeverity.OKAY;
-        } else if(alternative.getConfidence() > 0.6){
+        } else if(confidence > 0.6){
             severity = AnalysisSeverity.MEDIUM;
         } else {
             severity = AnalysisSeverity.SEVERE;
         }
-        return new AnalysisItem(severity, "Clarity", "Recognition had a confidence of " + alternative.getConfidence());
+        return new AnalysisItem(severity, "Clarity", "Recognition had a confidence of " + confidence);
     }
 }
