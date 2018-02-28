@@ -3,6 +3,9 @@
     package="com.prezpal.prezpal">
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -11,8 +14,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".ResultsSummaryActivity" />
-        <activity android:name=".AudioRecordingActivity" />
+        <activity
+            android:name=".ResultsSummaryActivity"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".AudioRecordingActivity"
+            android:screenOrientation="portrait" />
         <activity android:name=".MainMenu">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -20,7 +27,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".PresentationSettings"
             android:label="@string/present_settings_name"
@@ -44,10 +50,12 @@
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.prezpal.prezpal.MainMenu" />
-
         </activity>
 
-
+        <service
+            android:name=".SpeechRecognitionService"
+            android:enabled="true"
+            android:exported="true"></service>
     </application>
 
 </manifest>

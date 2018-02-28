@@ -2,6 +2,8 @@ package com.prezpal.prezpal;
 
 import android.net.Uri;
 
+import com.google.cloud.speech.v1.SpeechRecognitionAlternative;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -106,5 +108,17 @@ public class AudioAnalysis {
                 return new AnalysisItem(AnalysisSeverity.SEVERE, "Duration", "You went " + difference + " too long!");
             }
         }
+    }
+
+    public static AnalysisItem analyzeRecognition(SpeechRecognitionAlternative alternative){
+        AnalysisSeverity severity;
+        if(alternative.getConfidence() > 0.9){
+            severity = AnalysisSeverity.OKAY;
+        } else if(alternative.getConfidence() > 0.6){
+            severity = AnalysisSeverity.MEDIUM;
+        } else {
+            severity = AnalysisSeverity.SEVERE;
+        }
+        return new AnalysisItem(severity, "Clarity", "Recognition had a confidence of " + alternative.getConfidence());
     }
 }
