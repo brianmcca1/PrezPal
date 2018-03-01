@@ -8,7 +8,9 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.MediaRecorder;
+import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Environment;
 import android.os.IBinder;
 import android.os.Parcelable;
 import android.support.v4.app.ActivityCompat;
@@ -19,26 +21,39 @@ import android.view.View;
 import android.widget.Button;
 import android.os.Handler;
 
-import com.google.auth.Credentials;
-import com.google.auth.oauth2.AccessToken;
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.speech.v1.RecognitionAudio;
-import com.google.cloud.speech.v1.RecognitionConfig;
-import com.google.cloud.speech.v1.RecognizeRequest;
-import com.google.cloud.speech.v1.RecognizeResponse;
-import com.google.cloud.speech.v1.SpeechGrpc;
-import com.google.cloud.speech.v1.SpeechRecognitionResult;
-import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.api.client.auth.oauth2.Credential;
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.InputStreamContent;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.services.storage.Storage;
+import com.google.api.services.storage.StorageScopes;
+import com.google.api.services.storage.model.StorageObject;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.loopj.android.http.AsyncHttpClient;
+import com.loopj.android.http.JsonHttpResponseHandler;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLConnection;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import android.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -47,18 +62,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import io.grpc.CallOptions;
-import io.grpc.Channel;
-import io.grpc.ClientCall;
-import io.grpc.ClientInterceptor;
-import io.grpc.ClientInterceptors;
-import io.grpc.ManagedChannel;
-import io.grpc.Metadata;
-import io.grpc.MethodDescriptor;
-import io.grpc.Status;
-import io.grpc.StatusException;
-import io.grpc.internal.DnsNameResolverProvider;
-import io.grpc.okhttp.OkHttpChannelProvider;
+import cz.msebera.android.httpclient.Header;
+import cz.msebera.android.httpclient.entity.StringEntity;
+
+import static android.os.Environment.getExternalStorageDirectory;
+import static java.lang.Thread.sleep;
 
 
 public class AudioRecordingActivity extends AppCompatActivity {
@@ -71,33 +79,14 @@ public class AudioRecordingActivity extends AppCompatActivity {
     private List<AnalysisItem> analysisItems = new ArrayList<AnalysisItem>();
     // Title for the output File, listed as the timestamp of when recording started
     private String outputTitle = "";
-    // Service for speech recognition
-    public static final List<String> SCOPE =
-            Collections.singletonList("https://www.googleapis.com/auth/cloud-platform");
+    private static String API_URL = "https://speech.googleapis.com/v1/speech:recognize?key=AIzaSyDUw1wJVXSi_DYHngyMqcA68kKMoNqjlpM";
 
-    private SpeechGrpc.SpeechBlockingStub mApi = null;
+    private final Object lock = new Object();
 
-    private static final String PREFS = "SpeechService";
-    private static final String PREF_ACCESS_TOKEN_VALUE = "access_token_value";
-    private static final String PREF_ACCESS_TOKEN_EXPIRATION_TIME = "access_token_expiration_time";
-    /**
-     * We reuse an access token if its expiration time is longer than this.
-     */
-    private static final int ACCESS_TOKEN_EXPIRATION_TOLERANCE = 30 * 60 * 1000; // thirty minutes
-    /**
-     * We refresh the current access token before it expires.
-     */
-    private static final int ACCESS_TOKEN_FETCH_MARGIN = 60 * 1000; // one minute
-    private volatile AccessTokenTask mAccessTokenTask;
-    private static Handler mHandler;
     // Time markers to determine duration of recording
     private long startTime, endTime;
 
-
-
-
-
-
+    private volatile Boolean receivedResponse = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -105,9 +94,9 @@ public class AudioRecordingActivity extends AppCompatActivity {
         //bindService(new Intent(this, SpeechService.class), mServiceConnection, BIND_AUTO_CREATE);
         final Button startRecordingButton = (Button) findViewById(R.id.startRecordingButton);
         final Button stopRecordingButton = (Button) findViewById(R.id.stopRecordingButton);
-        fetchAccessToken();
         Intent intent = getIntent();
         final Integer expectedDuration = intent.getIntExtra("DURATION", 5);
+
 
         stopRecordingButton.setVisibility(View.INVISIBLE);
 
@@ -127,60 +116,130 @@ public class AudioRecordingActivity extends AppCompatActivity {
         stopRecordingButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 stopRecording();
-                // Analyze the Max Amplitudes
-                analysisItems.add(AudioAnalysis.analyzeAmplitudes(maxAmplitudes));
 
-                // TODO: This is where the rest of the analysis should go
-                Long actualDuration = (endTime - startTime) / 1000000000; // Calculate the duration in seconds
-                analysisItems.add(AudioAnalysis.analyzeDuration(expectedDuration * 60, actualDuration));
+                String fileName = getExternalStorageDirectory().getAbsolutePath() + "/" + outputTitle;
+                // Upload the file to Google Cloud Storage
+//                Uri storageUri = Uri.parse("gs://prezpal_audio_files/" + fileName);
+//                try {
+//                    uploadFile("prezpal_audio_files", fileName);
+//                } catch(Exception e){
+//                    e.printStackTrace();
+               // }
                 byte[] data = null;
+                final String encodedData;
                 try {
-                    File outputFile = new File(getExternalCacheDir().getAbsolutePath() + "/" + outputTitle);
+                    while(mRecorder != null){}
+                    File outputFile = new File(fileName);
+                    if(!outputFile.exists()){
+                        throw new IOException("FILE DOES NOT EXIST");
+                    }
                     FileInputStream fis = new FileInputStream(outputFile);
                     data = new byte[(int) outputFile.length()];
-                    fis.read(data);
+                    Log.i("DATA", "Data length: " + data.length);
+                    Log.i("DATA", fileName);
+                    int bytesRead = 1;
+                    while(bytesRead > 0){
+                        bytesRead = fis.read(data);
+                        Log.i("READING", "READ " + bytesRead + " BYTES FROM AUDIO FILE!!");
+                    }
                     fis.close();
                 } catch(IOException e){
                     e.printStackTrace();
                 }
-                RecognizeResponse response = null;
-                Log.i("WAITING", "Waiting for response from speech recognition");
-                try {
-                    while(mApi == null) {}
-                    RecognitionAudio audio = RecognitionAudio.parseFrom(data);
-                    RecognitionConfig config = RecognitionConfig.newBuilder().setEncoding(RecognitionConfig.AudioEncoding.AMR_WB).setLanguageCode("en-US").setSampleRateHertz(16000).build();
-                    RecognizeRequest request = RecognizeRequest.newBuilder().setAudio(audio).setConfig(config).build();
-                    response = mApi.recognize(request);
+                Log.i("Encoding", "Encoding data");
+                encodedData = Base64.encodeToString(data, Base64.NO_WRAP);
+                AsyncHttpClient client = new AsyncHttpClient();
+                StringEntity postBody = null;
+                try{
+                    JSONObject params = new JSONObject();
+                    JSONObject config = new JSONObject();
+                    JSONObject audio = new JSONObject();
+                    config.put("encoding", "AMR_WB");
+                    config.put("sampleRateHertz", 16000);
+                    config.put("languageCode", "en-US");
 
-                } catch(InvalidProtocolBufferException e){
+                    audio.put("content", encodedData);
+
+                    params.put("config", config);
+                    params.put("audio", audio);
+                    postBody = new StringEntity(params.toString());
+
+                } catch (Exception e){
                     e.printStackTrace();
                 }
 
+                final List<Float> confidenceList = new ArrayList<Float>();
+                Log.i("post", "Sending POST request now");
+
+                client.post(getApplicationContext(), API_URL, postBody, "application/json", new JsonHttpResponseHandler() {
+                            @Override
+                            public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+                                // If the response is JSONObject instead of expected JSONArray
+                                String transcript = "";
+                                try {
+                                    Log.i("TAG", "Successful response: " + response.toString());
+                                    JSONArray results = (JSONArray) response.get("results");
+                                    for(int i = 0; i<results.length(); i++){
+                                        JSONObject result = (JSONObject) results.get(i);
+
+                                        JSONArray alternatives = (JSONArray) result.get("alternatives");
+                                        for(int j = 0; j < alternatives.length(); j++){
+                                            JSONObject alternative = (JSONObject) alternatives.get(j);
+                                            Float confidence = Float.parseFloat(alternative.get("confidence").toString());
+                                            String newTranscript = alternative.getString("transcript");
+                                            transcript += newTranscript;
+                                            Log.i("TAG", "GOT CONFIDENCE RESPONSE");
+                                            Log.i("TAG", "GOT CONFIDENCE RESPONSE");
+                                            confidenceList.add(confidence);
 
 
-//                float confidenceSum = 0;
-//                for (float confidence : confidenceList) {
-//                    confidenceSum += confidence;
-//                }
-//                float averageConfidence = confidenceSum / confidenceList.size();
-                if(response.getResultsCount() > 0) {
-                    List<SpeechRecognitionResult> resultList = response.getResultsList();
-                    for (SpeechRecognitionResult result : resultList) {
-                        analysisItems.add(AudioAnalysis.analyzeRecognition(result.getAlternatives(0).getConfidence()));
-                    }
-                } else {
-                    Log.e("AudioRecordingActivity", "NO RESULTS FROM AUDIO RECOGNITION");
-                }
-                // Launch intent for the ResultsSummaryActivity
 
-                Intent resultsIntent = new Intent(getApplicationContext(), ResultsSummaryActivity.class);
-                ArrayList<Parcelable> parcelableList = new ArrayList<Parcelable>();
-                for (AnalysisItem item : analysisItems) {
-                    parcelableList.add((Parcelable) item);
-                }
 
-                resultsIntent.putParcelableArrayListExtra("ANALYSIS_ITEMS", parcelableList);
-                startActivity(resultsIntent);
+                                        }
+                                    }
+                                    float confidenceSum = 0;
+                                    for(Float confidence : confidenceList){
+                                        confidenceSum += confidence;
+                                    }
+
+                                    analysisItems.add(AudioAnalysis.analyzeRecognition(confidenceSum / confidenceList.size()));
+                                    // Analyze the Max Amplitudes
+                                    analysisItems.add(AudioAnalysis.analyzeAmplitudes(maxAmplitudes));
+
+                                    Long actualDuration = (endTime - startTime) / 1000000000; // Calculate the duration in seconds
+                                    String[] words = transcript.split(" ");
+                                    Integer wordCount = words.length;
+                                    analysisItems.add(AudioAnalysis.analyzeSpeakingRate(wordCount, actualDuration));
+                                    analysisItems.add(AudioAnalysis.analyzeDuration(expectedDuration * 60, actualDuration));
+                                    Intent resultsIntent = new Intent(getApplicationContext(), ResultsSummaryActivity.class);
+                                    ArrayList<Parcelable> parcelableList = new ArrayList<Parcelable>();
+                                    for (AnalysisItem item : analysisItems) {
+                                        parcelableList.add((Parcelable) item);
+                                    }
+
+                                    Log.i("LOG", "About to launch intent");
+                                    resultsIntent.putParcelableArrayListExtra("ANALYSIS_ITEMS", parcelableList);
+                                    startActivity(resultsIntent);
+                                } catch (JSONException e){
+                                    e.printStackTrace();
+                                }
+
+                                receivedResponse = true;
+
+                            }
+
+                            @Override
+                            public void onFailure(int statusCode, Header[] headers, Throwable e, JSONObject response){
+                                e.printStackTrace();
+                                Log.e("ERR", "STATUS CODE " + statusCode);
+                                Log.e("ERR", response.toString());
+                                Log.e("ERR", "Data: " + encodedData);
+                                receivedResponse = true;
+
+                            }
+                        });
+                    stopRecordingButton.setVisibility(View.INVISIBLE);
+                    // Maybe include a loading thing here?
 
             }
         });
@@ -208,13 +267,13 @@ public class AudioRecordingActivity extends AppCompatActivity {
         }
         startTime = System.nanoTime();
         if (mRecorder == null) {
-            outputTitle = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date()) + ".aac";
+            outputTitle = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format(new Date());
             mRecorder = new MediaRecorder();
             mRecorder.reset();
             mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-            mRecorder.setOutputFormat(MediaRecorder.OutputFormat.AAC_ADTS);
+            mRecorder.setOutputFormat(MediaRecorder.OutputFormat.AMR_WB);
             mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_WB);
-            mRecorder.setOutputFile(getExternalCacheDir().getAbsolutePath() + "/" + outputTitle);
+            mRecorder.setOutputFile(getExternalStorageDirectory().getAbsolutePath() + "/" + outputTitle);
             mRecorder.setOnErrorListener(new MediaRecorder.OnErrorListener() {
                 @Override
                 public void onError(MediaRecorder recorder, int what, int extra) {
@@ -241,207 +300,73 @@ public class AudioRecordingActivity extends AppCompatActivity {
         endTime = System.nanoTime();
         if (mRecorder != null) {
             mRecorder.stop();
+
             mRecorder.release();
             mRecorder = null;
         }
 
-//        try {
-//
-//            speechService.startRecognizing(44100);
-//            File outputFile = new File(getExternalCacheDir().getAbsolutePath() + "/" + outputTitle);
-//            FileInputStream fis = new FileInputStream(outputFile);
-//            byte[] data = new byte[(int) outputFile.length()];
-//            fis.read(data);
-//            fis.close();
-//            speechService.recognize(data, data.length);
-//            speechService.finishRecognizing();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-
-
-        //Paths.get(getExternalCacheDir().getAbsolutePath() + "/" + outputTitle);
-
     }
 
-    private void fetchAccessToken() {
-        if (mAccessTokenTask != null) {
-            return;
+
+    static Storage storage = null;
+    public void uploadFile(String bucketName, String filePath)throws Exception {
+
+        Storage storage = getStorage();
+        StorageObject object = new StorageObject();
+        object.setBucket(bucketName);
+        File file = new File(filePath);
+
+        InputStream stream = new FileInputStream(file);
+
+        try {
+            String contentType = URLConnection.guessContentTypeFromStream(stream);
+            InputStreamContent content = new InputStreamContent(contentType,stream);
+
+            Storage.Objects.Insert insert = storage.objects().insert(bucketName, null, content);
+            insert.setName(file.getName());
+            insert.execute();
+
+
+        } finally {
+            stream.close();
         }
-        mAccessTokenTask = new AccessTokenTask();
-        mAccessTokenTask.execute();
     }
 
-    private class AccessTokenTask extends AsyncTask<Void, Void, AccessToken> {
+    private Storage getStorage() throws Exception {
 
-        @Override
-        protected AccessToken doInBackground(Void... voids) {
-            final SharedPreferences prefs =
-                    getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-            String tokenValue = prefs.getString(PREF_ACCESS_TOKEN_VALUE, null);
-            long expirationTime = prefs.getLong(PREF_ACCESS_TOKEN_EXPIRATION_TIME, -1);
+        if (storage == null) {
+            HttpTransport httpTransport = new NetHttpTransport();
+            JsonFactory jsonFactory = new JacksonFactory();
+            List<String> scopes = new ArrayList<String>();
+            scopes.add(StorageScopes.DEVSTORAGE_FULL_CONTROL);
 
-            // Check if the current token is still valid for a while
-            if (tokenValue != null && expirationTime > 0) {
-                if (expirationTime
-                        > System.currentTimeMillis() + ACCESS_TOKEN_EXPIRATION_TOLERANCE) {
-                    return new AccessToken(tokenValue, new Date(expirationTime));
-                }
-            }
+            Credential credential = new GoogleCredential.Builder()
+                    .setTransport(httpTransport)
+                    .setJsonFactory(jsonFactory)
+                    .setServiceAccountId("brianmcca1@gmail.com") //Email
+                    .setServiceAccountPrivateKeyFromP12File(getTempPkc12File())
+                    .setServiceAccountScopes(scopes).build();
 
-            // ***** WARNING *****
-            // In this sample, we load the credential from a JSON file stored in a raw resource
-            // folder of this client app. You should never do this in your app. Instead, store
-            // the file in your server and obtain an access token from there.
-            // *******************
-            final InputStream stream = getResources().openRawResource(R.raw.key);
-            try {
-                final GoogleCredentials credentials = GoogleCredentials.fromStream(stream)
-                        .createScoped(SCOPE);
-                final AccessToken token = credentials.refreshAccessToken();
-                prefs.edit()
-                        .putString(PREF_ACCESS_TOKEN_VALUE, token.getTokenValue())
-                        .putLong(PREF_ACCESS_TOKEN_EXPIRATION_TIME,
-                                token.getExpirationTime().getTime())
-                        .apply();
-                return token;
-            } catch (IOException e) {
-                Log.e("AudioRecordingActivity", "Failed to obtain access token.", e);
-            }
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(AccessToken accessToken) {
-            mAccessTokenTask = null;
-            final ManagedChannel channel = new OkHttpChannelProvider()
-                    .builderForAddress("speech.googleapis.com", 443)
-                    .nameResolverFactory(new DnsNameResolverProvider())
-                    .intercept(new GoogleCredentialsInterceptor(new GoogleCredentials(accessToken)
-                            .createScoped(SCOPE)))
+            storage = new Storage.Builder(httpTransport, jsonFactory,
+                    credential).setApplicationName("PrezPal")
                     .build();
-            mApi = SpeechGrpc.newBlockingStub(channel);
-
-            // Schedule access token refresh before it expires
-            if (mHandler != null) {
-                mHandler.postDelayed(mFetchAccessTokenRunnable,
-                        Math.max(accessToken.getExpirationTime().getTime()
-                                - System.currentTimeMillis()
-                                - ACCESS_TOKEN_FETCH_MARGIN, ACCESS_TOKEN_EXPIRATION_TOLERANCE));
-            }
         }
+
+        return storage;
     }
 
-    private final Runnable mFetchAccessTokenRunnable = new Runnable() {
-        @Override
-        public void run() {
-            fetchAccessToken();
+    private File getTempPkc12File() throws IOException {
+        // xxx.p12 export from google API console
+        InputStream pkc12Stream = getResources().openRawResource(R.raw.prezpalkey);
+        File tempPkc12File = File.createTempFile("temp_pkc12_file", "p12");
+        OutputStream tempFileStream = new FileOutputStream(tempPkc12File);
+
+        int read = 0;
+        byte[] bytes = new byte[1024];
+        while ((read = pkc12Stream.read(bytes)) != -1) {
+            tempFileStream.write(bytes, 0, read);
         }
-    };
-
-    /**
-     * Authenticates the gRPC channel using the specified {@link GoogleCredentials}.
-     */
-    private static class GoogleCredentialsInterceptor implements ClientInterceptor {
-
-        private final Credentials mCredentials;
-
-        private Metadata mCached;
-
-        private Map<String, List<String>> mLastMetadata;
-
-        GoogleCredentialsInterceptor(Credentials credentials) {
-            mCredentials = credentials;
-        }
-
-        @Override
-        public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
-                final MethodDescriptor<ReqT, RespT> method, CallOptions callOptions,
-                final Channel next) {
-            return new ClientInterceptors.CheckedForwardingClientCall<ReqT, RespT>(
-                    next.newCall(method, callOptions)) {
-                @Override
-                protected void checkedStart(Listener<RespT> responseListener, Metadata headers)
-                        throws StatusException {
-                    Metadata cachedSaved;
-                    URI uri = serviceUri(next, method);
-                    synchronized (this) {
-                        Map<String, List<String>> latestMetadata = getRequestMetadata(uri);
-                        if (mLastMetadata == null || mLastMetadata != latestMetadata) {
-                            mLastMetadata = latestMetadata;
-                            mCached = toHeaders(mLastMetadata);
-                        }
-                        cachedSaved = mCached;
-                    }
-                    headers.merge(cachedSaved);
-                    delegate().start(responseListener, headers);
-                }
-            };
-        }
-
-        /**
-         * Generate a JWT-specific service URI. The URI is simply an identifier with enough
-         * information for a service to know that the JWT was intended for it. The URI will
-         * commonly be verified with a simple string equality check.
-         */
-        private URI serviceUri(Channel channel, MethodDescriptor<?, ?> method)
-                throws StatusException {
-            String authority = channel.authority();
-            if (authority == null) {
-                throw Status.UNAUTHENTICATED
-                        .withDescription("Channel has no authority")
-                        .asException();
-            }
-            // Always use HTTPS, by definition.
-            final String scheme = "https";
-            final int defaultPort = 443;
-            String path = "/" + MethodDescriptor.extractFullServiceName(method.getFullMethodName());
-            URI uri;
-            try {
-                uri = new URI(scheme, authority, path, null, null);
-            } catch (URISyntaxException e) {
-                throw Status.UNAUTHENTICATED
-                        .withDescription("Unable to construct service URI for auth")
-                        .withCause(e).asException();
-            }
-            // The default port must not be present. Alternative ports should be present.
-            if (uri.getPort() == defaultPort) {
-                uri = removePort(uri);
-            }
-            return uri;
-        }
-
-        private URI removePort(URI uri) throws StatusException {
-            try {
-                return new URI(uri.getScheme(), uri.getUserInfo(), uri.getHost(), -1 /* port */,
-                        uri.getPath(), uri.getQuery(), uri.getFragment());
-            } catch (URISyntaxException e) {
-                throw Status.UNAUTHENTICATED
-                        .withDescription("Unable to construct service URI after removing port")
-                        .withCause(e).asException();
-            }
-        }
-
-        private Map<String, List<String>> getRequestMetadata(URI uri) throws StatusException {
-            try {
-                return mCredentials.getRequestMetadata(uri);
-            } catch (IOException e) {
-                throw Status.UNAUTHENTICATED.withCause(e).asException();
-            }
-        }
-
-        private static Metadata toHeaders(Map<String, List<String>> metadata) {
-            Metadata headers = new Metadata();
-            if (metadata != null) {
-                for (String key : metadata.keySet()) {
-                    Metadata.Key<String> headerKey = Metadata.Key.of(
-                            key, Metadata.ASCII_STRING_MARSHALLER);
-                    for (String value : metadata.get(key)) {
-                        headers.put(headerKey, value);
-                    }
-                }
-            }
-            return headers;
-        }
+        return tempPkc12File;
     }
+
 }

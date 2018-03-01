@@ -121,4 +121,24 @@ public class AudioAnalysis {
         }
         return new AnalysisItem(severity, "Clarity", "Recognition had a confidence of " + confidence);
     }
+
+    public static AnalysisItem analyzeSpeakingRate(Integer wordCount, Long duration){
+        AnalysisSeverity severity;
+        long wordsPerMinute;
+        // TODO: This always seems to be zero, even though it shouldn't be
+        if(duration / 60 == 0){
+            severity = AnalysisSeverity.OKAY;
+            wordsPerMinute = 0;
+        } else {
+            wordsPerMinute = wordCount / (duration / 60);
+            if (wordsPerMinute < 140) {
+                severity = AnalysisSeverity.OKAY;
+            } else if (wordsPerMinute < 160) {
+                severity = AnalysisSeverity.MEDIUM;
+            } else {
+                severity = AnalysisSeverity.SEVERE;
+            }
+        }
+        return new AnalysisItem(severity, "Speed", "You spoke at a rate of " + wordsPerMinute + " words per minute");
+    }
 }
